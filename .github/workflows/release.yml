@@ -13,12 +13,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Extract version from manifest.json
         id: extract_version
         run: |
-          VERSION=$(jq -r '.version' manifest.json)
+          VERSION=$(jq -r '.version' custom_components/emonio/manifest.json)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Create GitHub Release
