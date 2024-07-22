@@ -3,7 +3,7 @@ name: Create Release
 on:
   push:
     paths:
-      - 'manifest.json'
+      - 'custom_components/emonio/manifest.json'
     branches:
       - main
 
