@@ -1,7 +1,7 @@
 {
   "domain": "emonio",
   "name": "Emonio P3",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "documentation": "https://emonio.de",
   "requirements": ["pymodbus==2.5.3"],
   "dependencies": [],
