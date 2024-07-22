@@ -8,7 +8,7 @@ on:
       - main
 
 jobs:
-  Create Release:
+  Create-Release:
     runs-on: ubuntu-latest
 
     steps:
