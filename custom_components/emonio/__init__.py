@@ -6,11 +6,11 @@ from homeassistant.core import HomeAssistant
 from .const import DOMAIN
 
 async def async_setup(hass: HomeAssistant, config: dict):
-    """Set up the Emonio Modbus component."""
+    """Set up the Emonio component."""
     return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up Emonio Modbus from a config entry."""
+    """Set up Emonio from a config entry."""
     hass.data.setdefault(DOMAIN, {})
     await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
 

@@ -2,9 +2,8 @@
   "domain": "emonio",
   "name": "Emonio P3",
   "version": "0.0.3",
-  "documentation": "https://emonio.de",
+  "documentation": "https://github.com/Emonio/hacs-emonio-p3",
   "requirements": ["pymodbus==2.5.3"],
-  "dependencies": [],
   "codeowners": ["@andsk8"],
   "config_flow": true,
   "iot_class": "local_polling"
