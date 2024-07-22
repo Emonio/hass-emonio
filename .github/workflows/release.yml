@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'custom_components/emonio/manifest.json'
+      - '.github/workflows/release.yml'
     branches:
       - main
 
