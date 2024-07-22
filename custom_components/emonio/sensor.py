@@ -20,7 +20,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     device_info = {
         "identifiers": {(DOMAIN, host)},
-        "name": "Emonio Modbus Device",
+        "name": "Emonio P3",
         "model": "Emonio P3",
         "manufacturer": "Berliner Energie Institut",
     }

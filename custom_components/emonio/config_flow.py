@@ -11,7 +11,7 @@ class EmonioModbusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
         if user_input is not None:
-            return self.async_create_entry(title="Emonio Modbus", data=user_input)
+            return self.async_create_entry(title="Emonio P3", data=user_input)
 
         # Define the data schema with a legend
         data_schema = vol.Schema(
