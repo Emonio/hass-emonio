@@ -3,6 +3,7 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.const import (
     UnitOfEnergy,
     UnitOfPower,
+    UnitOfElectricPotential
 )
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from pymodbus.client.sync import ModbusTcpClient
@@ -25,20 +26,61 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         "manufacturer": "Berliner Energie Institut",
     }
 
+    # Create a shared Modbus client
+    modbus_client = ModbusTcpClient(host, port)
+
     # Define your sensors here
     sensors = [
         EmonioModbusSensor(
-            name="Emonio_Total_Power",
-            unit_of_measurement=UnitOfPower.WATT,
-            address=304,
+            name="Emonio_Phase_A_Voltage",
+            unit_of_measurement=UnitOfElectricPotential.VOLT,
+            address=0,
             data_type="float32",
             swap="word",
-            device_class=SensorDeviceClass.POWER,
+            device_class=SensorDeviceClass.VOLTAGE,
             state_class=SensorStateClass.MEASUREMENT,
             hub_name="modbus_hub",
-            host=host,
-            port=port,
-            unique_id="emonio_total_power",
+            modbus_client=modbus_client,
+            unique_id="emonio_phase_a_voltage",
+            device_info=device_info,
+        ),
+        EmonioModbusSensor(
+            name="Emonio_Phase_B_Voltage",
+            unit_of_measurement=UnitOfElectricPotential.VOLT,
+            address=100,
+            data_type="float32",
+            swap="word",
+            device_class=SensorDeviceClass.VOLTAGE,
+            state_class=SensorStateClass.MEASUREMENT,
+            hub_name="modbus_hub",
+            modbus_client=modbus_client,
+            unique_id="emonio_phase_b_voltage",
+            device_info=device_info,
+        ),
+        EmonioModbusSensor(
+            name="Emonio_Phase_C_Voltage",
+            unit_of_measurement=UnitOfElectricPotential.VOLT,
+            address=200,
+            data_type="float32",
+            swap="word",
+            device_class=SensorDeviceClass.VOLTAGE,
+            state_class=SensorStateClass.MEASUREMENT,
+            hub_name="modbus_hub",
+            modbus_client=modbus_client,
+            unique_id="emonio_phase_c_voltage",
+            device_info=device_info,
+        ),
+        EmonioModbusSensor(
+            name="Emonio_Total_Voltage",
+            unit_of_measurement=UnitOfElectricPotential.VOLT,
+            address=300,
+            data_type="float32",
+            swap="word",
+            device_class=SensorDeviceClass.VOLTAGE,
+            state_class=SensorStateClass.MEASUREMENT,
+            hub_name="modbus_hub",
+            modbus_client=modbus_client,
+            unique_id="emonio_total_voltage",
             device_info=device_info,
         ),
         EmonioModbusSensor(
@@ -50,8 +92,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.POWER,
             state_class=SensorStateClass.MEASUREMENT,
             hub_name="modbus_hub",
-            host=host,
-            port=port,
+            modbus_client=modbus_client,
             unique_id="emonio_phase_a_power",
             device_info=device_info,
         ),
@@ -64,8 +105,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.POWER,
             state_class=SensorStateClass.MEASUREMENT,
             hub_name="modbus_hub",
-            host=host,
-            port=port,
+            modbus_client=modbus_client,
             unique_id="emonio_phase_b_power",
             device_info=device_info,
         ),
@@ -78,23 +118,21 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.POWER,
             state_class=SensorStateClass.MEASUREMENT,
             hub_name="modbus_hub",
-            host=host,
-            port=port,
+            modbus_client=modbus_client,
             unique_id="emonio_phase_c_power",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name="Emonio_Total_Energy",
-            unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-            address=312,
+            name="Emonio_Total_Power",
+            unit_of_measurement=UnitOfPower.WATT,
+            address=304,
             data_type="float32",
             swap="word",
-            device_class=SensorDeviceClass.ENERGY,
-            state_class=SensorStateClass.TOTAL_INCREASING,
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
             hub_name="modbus_hub",
-            host=host,
-            port=port,
-            unique_id="emonio_total_energy",
+            modbus_client=modbus_client,
+            unique_id="emonio_total_power",
             device_info=device_info,
         ),
         EmonioModbusSensor(
@@ -104,10 +142,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             data_type="float32",
             swap="word",
             device_class=SensorDeviceClass.ENERGY,
-            state_class=SensorStateClass.TOTAL_INCREASING,
+            state_class=SensorStateClass.TOTAL,
             hub_name="modbus_hub",
-            host=host,
-            port=port,
+            modbus_client=modbus_client,
             unique_id="emonio_phase_a_energy",
             device_info=device_info,
         ),
@@ -118,10 +155,9 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             data_type="float32",
             swap="word",
             device_class=SensorDeviceClass.ENERGY,
-            state_class=SensorStateClass.TOTAL_INCREASING,
+            state_class=SensorStateClass.TOTAL,
             hub_name="modbus_hub",
-            host=host,
-            port=port,
+            modbus_client=modbus_client,
             unique_id="emonio_phase_b_energy",
             device_info=device_info,
         ),
@@ -132,18 +168,30 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             data_type="float32",
             swap="word",
             device_class=SensorDeviceClass.ENERGY,
-            state_class=SensorStateClass.TOTAL_INCREASING,
+            state_class=SensorStateClass.TOTAL,
             hub_name="modbus_hub",
-            host=host,
-            port=port,
+            modbus_client=modbus_client,
             unique_id="emonio_phase_c_energy",
+            device_info=device_info,
+        ),
+        EmonioModbusSensor(
+            name="Emonio_Total_Energy",
+            unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+            address=312,
+            data_type="float32",
+            swap="word",
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.TOTAL,
+            hub_name="modbus_hub",
+            modbus_client=modbus_client,
+            unique_id="emonio_total_energy",
             device_info=device_info,
         ),
     ]
     async_add_entities(sensors, True)
 
 class EmonioModbusSensor(SensorEntity):
-    def __init__(self, name, unit_of_measurement, address, data_type, swap, device_class, state_class, hub_name, host, port, unique_id, device_info):
+    def __init__(self, name, unit_of_measurement, address, data_type, swap, device_class, state_class, hub_name, modbus_client, unique_id, device_info):
         self._name = name
         self._unit_of_measurement = unit_of_measurement
         self._address = address
@@ -152,12 +200,10 @@ class EmonioModbusSensor(SensorEntity):
         self._device_class = device_class
         self._state_class = state_class
         self._hub_name = hub_name
-        self._host = host
-        self._port = port
+        self._modbus_client = modbus_client
         self._state = None
         self._unique_id = unique_id
         self._device_info = device_info
-        self._client = ModbusTcpClient(host, port)
 
     @property
     def name(self):
@@ -190,8 +236,10 @@ class EmonioModbusSensor(SensorEntity):
     async def async_update(self):
         """Fetch new state data for the sensor."""
         try:
-            self._client.connect()
-            result = self._client.read_holding_registers(self._address, 2, unit=1)
+            if not self._modbus_client.is_socket_open():
+                self._modbus_client.connect()
+
+            result = self._modbus_client.read_holding_registers(self._address, 2, unit=1)
             if result.isError():
                 return
 
@@ -200,14 +248,14 @@ class EmonioModbusSensor(SensorEntity):
                 registers.reverse()
 
             decoder = BinaryPayloadDecoder.fromRegisters(
-                registers, 
+                registers,
                 byteorder=Endian.Big
             )
             raw_value = decoder.decode_32bit_float()
             self._state = round(raw_value, 2)  # Format to two decimal places
         except Exception as e:
-            # Log the error
+            # Log the error (you might want to add logging here)
             self._state = self._state  # Retain the last known value
         finally:
-            self._client.close()
-
+            # Do not close the client to keep the connection persistent
+            pass

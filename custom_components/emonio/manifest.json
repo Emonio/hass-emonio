@@ -1,7 +1,7 @@
 {
   "domain": "emonio",
   "name": "Emonio P3",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "documentation": "https://github.com/Emonio/hacs-emonio-p3",
   "requirements": ["pymodbus==2.5.3"],
   "codeowners": ["@andsk8"],
