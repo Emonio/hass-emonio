@@ -1,12 +1,15 @@
 {
   "domain": "emonio",
   "name": "Emonio P3",
-  "version": "0.1.0",
-  "documentation": "https://github.com/Emonio/hacs-emonio-p3",
-  "requirements": ["pymodbus==2.5.3"],
-  "isssue_tracker": "https://github.com/Emonio/hacs-emonio-p3/issues",
-  "codeowners": ["@andsk8"],
+  "codeowners": [
+    "@andsk8"
+  ],
   "config_flow": true,
-  "iot_class": "local_polling"
+  "documentation": "https://github.com/Emonio/hacs-emonio-p3",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/Emonio/hacs-emonio-p3/issues",
+  "requirements": [
+    "pymodbus==2.5.3"
+  ],
+  "version": "0.1.0"
 }
-
