@@ -1,3 +1,4 @@
+import voluptuous as vol
 from datetime import timedelta
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.const import (
@@ -22,6 +23,10 @@ _LOGGER = logging.getLogger(__name__)
 
 SCAN_INTERVAL = timedelta(seconds=5)
 
+CONFIG_SCHEMA = vol.Schema({
+    DOMAIN: cv.config_entry_only_config_schema,
+}, extra=vol.ALLOW_EXTRA)
+
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Emonio Modbus sensor platform."""
     host = config_entry.data["host"]
@@ -37,7 +42,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     # Create a shared Modbus client
     modbus_client = ModbusTcpClient(host, port)
 
-    # Define your sensors here
+    # Sensors definitions
     sensors = [
         EmonioModbusSensor(
             name="Emonio_Phase_A_Voltage",
