@@ -34,8 +34,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     device_info = {
         "identifiers": {(DOMAIN, host)},
-        "name": "Emonio P3",
-        "model": "Emonio P3",
+        "name": "Emonio P3 caca",
+        "model": "Emonio P3 pedo",
         "manufacturer": "Berliner Energie Institut",
     }
 

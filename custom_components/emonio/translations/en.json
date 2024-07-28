@@ -3,10 +3,10 @@
     "step": {
       "user": {
         "data": {
-          "host": "Emonio IP"
+          "host": "Emonio IP",
+          "port": "Modbus Port"
         }
       }
     }
   }
 }
-
