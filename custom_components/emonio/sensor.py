@@ -1,4 +1,5 @@
 import voluptuous as vol
+import ipaddress
 from datetime import timedelta
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.const import (
@@ -17,6 +18,8 @@ from pymodbus.constants import Endian
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers import config_validation as cv
 import logging
+import asyncio
+import subprocess
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -27,14 +30,43 @@ CONFIG_SCHEMA = vol.Schema({
     DOMAIN: cv.config_entry_only_config_schema,
 }, extra=vol.ALLOW_EXTRA)
 
+async def get_mac_address(ip_address):
+    """Get the MAC address of a device by IP address asynchronously."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            'arp', '-n', ip_address,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        stdout, stderr = await proc.communicate()
+        if stderr:
+            _LOGGER.error(f"Error getting MAC address for {ip_address}: {stderr.decode()}")
+            return None
+
+        stdout = stdout.decode()
+        for line in stdout.split('\n'):
+            if ip_address in line:
+                return line.split()[2]
+
+        return None
+    except Exception as e:
+        _LOGGER.error(f"Error getting MAC address for {ip_address}: {e}")
+        return None
+
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up the Emonio Modbus sensor platform."""
     host = config_entry.data["host"]
     port = config_entry.data.get("port", 502)
 
+    mac_address = await get_mac_address(host)
+    if not mac_address:
+        _LOGGER.error(f"Could not get MAC address for {host}")
+        return
+    mac_suffix = mac_address.replace(':', '')[-6:].upper()
+
     device_info = {
-        "identifiers": {(DOMAIN, host)},
-        "name": f"Emonio P3 {host}",
+        "identifiers": {(DOMAIN, mac_suffix)},
+        "name": f"Emonio P3 {mac_suffix}",
         "model": "Emonio P3",
         "manufacturer": "Berliner Energie Institut",
     }
@@ -45,7 +77,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     # Sensors definitions
     sensors = [
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase A Voltage",
+            name=f"Emonio {mac_suffix} Phase A Voltage",
             unit_of_measurement=UnitOfElectricPotential.VOLT,
             address=0,
             data_type="float32",
@@ -53,11 +85,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.VOLTAGE,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_a_voltage",
+            unique_id=f"{mac_suffix}_emonio_phase_a_voltage",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase B Voltage",
+            name=f"Emonio {mac_suffix} Phase B Voltage",
             unit_of_measurement=UnitOfElectricPotential.VOLT,
             address=100,
             data_type="float32",
@@ -65,11 +97,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.VOLTAGE,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_b_voltage",
+            unique_id=f"{mac_suffix}_emonio_phase_b_voltage",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase C Voltage",
+            name=f"Emonio {mac_suffix} Phase C Voltage",
             unit_of_measurement=UnitOfElectricPotential.VOLT,
             address=200,
             data_type="float32",
@@ -77,11 +109,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.VOLTAGE,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_c_voltage",
+            unique_id=f"{mac_suffix}_emonio_phase_c_voltage",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Total Voltage",
+            name=f"Emonio {mac_suffix} Total Voltage",
             unit_of_measurement=UnitOfElectricPotential.VOLT,
             address=300,
             data_type="float32",
@@ -89,11 +121,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.VOLTAGE,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_total_voltage",
+            unique_id=f"{mac_suffix}_emonio_total_voltage",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase A Power",
+            name=f"Emonio {mac_suffix} Phase A Power",
             unit_of_measurement=UnitOfPower.WATT,
             address=4,
             data_type="float32",
@@ -101,11 +133,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.POWER,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_a_power",
+            unique_id=f"{mac_suffix}_emonio_phase_a_power",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase B Power",
+            name=f"Emonio {mac_suffix} Phase B Power",
             unit_of_measurement=UnitOfPower.WATT,
             address=104,
             data_type="float32",
@@ -113,11 +145,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.POWER,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_b_power",
+            unique_id=f"{mac_suffix}_emonio_phase_b_power",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase C Power",
+            name=f"Emonio {mac_suffix} Phase C Power",
             unit_of_measurement=UnitOfPower.WATT,
             address=204,
             data_type="float32",
@@ -125,11 +157,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.POWER,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_c_power",
+            unique_id=f"{mac_suffix}_emonio_phase_c_power",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Total Power",
+            name=f"Emonio {mac_suffix} Total Power",
             unit_of_measurement=UnitOfPower.WATT,
             address=304,
             data_type="float32",
@@ -137,11 +169,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.POWER,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_total_power",
+            unique_id=f"{mac_suffix}_emonio_total_power",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase A Energy",
+            name=f"Emonio {mac_suffix} Phase A Energy",
             unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             address=12,
             data_type="float32",
@@ -149,11 +181,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_a_energy",
+            unique_id=f"{mac_suffix}_emonio_phase_a_energy",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase B Energy",
+            name=f"Emonio {mac_suffix} Phase B Energy",
             unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             address=112,
             data_type="float32",
@@ -161,11 +193,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_b_energy",
+            unique_id=f"{mac_suffix}_emonio_phase_b_energy",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase C Energy",
+            name=f"Emonio {mac_suffix} Phase C Energy",
             unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             address=212,
             data_type="float32",
@@ -173,11 +205,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_c_energy",
+            unique_id=f"{mac_suffix}_emonio_phase_c_energy",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Total Energy",
+            name=f"Emonio {mac_suffix} Total Energy",
             unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             address=312,
             data_type="float32",
@@ -185,11 +217,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_total_energy",
+            unique_id=f"{mac_suffix}_emonio_total_energy",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase A Current",
+            name=f"Emonio {mac_suffix} Phase A Current",
             unit_of_measurement=UnitOfElectricCurrent.AMPERE,
             address=2,
             data_type="float32",
@@ -197,11 +229,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.CURRENT,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_a_current",
+            unique_id=f"{mac_suffix}_emonio_phase_a_current",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase B Current",
+            name=f"Emonio {mac_suffix} Phase B Current",
             unit_of_measurement=UnitOfElectricCurrent.AMPERE,
             address=102,
             data_type="float32",
@@ -209,11 +241,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.CURRENT,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_b_current",
+            unique_id=f"{mac_suffix}_emonio_phase_b_current",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase C Current",
+            name=f"Emonio {mac_suffix} Phase C Current",
             unit_of_measurement=UnitOfElectricCurrent.AMPERE,
             address=202,
             data_type="float32",
@@ -221,11 +253,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.CURRENT,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_c_current",
+            unique_id=f"{mac_suffix}_emonio_phase_c_current",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Total Current",
+            name=f"Emonio {mac_suffix} Total Current",
             unit_of_measurement=UnitOfElectricCurrent.AMPERE,
             address=302,
             data_type="float32",
@@ -233,11 +265,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.CURRENT,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_total_current",
+            unique_id=f"{mac_suffix}_emonio_total_current",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase A Apparent Power Reactive",
+            name=f"Emonio {mac_suffix} Phase A Apparent Power Reactive",
             unit_of_measurement=POWER_VOLT_AMPERE_REACTIVE,
             address=6,
             data_type="float32",
@@ -245,11 +277,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.REACTIVE_POWER,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_a_apparent_power_reactive",
+            unique_id=f"{mac_suffix}_emonio_phase_a_apparent_power_reactive",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase B Apparent Power Reactive",
+            name=f"Emonio {mac_suffix} Phase B Apparent Power Reactive",
             unit_of_measurement=POWER_VOLT_AMPERE_REACTIVE,
             address=106,
             data_type="float32",
@@ -257,11 +289,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.REACTIVE_POWER,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_b_apparent_power_reactive",
+            unique_id=f"{mac_suffix}_emonio_phase_b_apparent_power_reactive",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase C Apparent Power Reactive",
+            name=f"Emonio {mac_suffix} Phase C Apparent Power Reactive",
             unit_of_measurement=POWER_VOLT_AMPERE_REACTIVE,
             address=206,
             data_type="float32",
@@ -269,11 +301,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.REACTIVE_POWER,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_c_apparent_power_reactive",
+            unique_id=f"{mac_suffix}_emonio_phase_c_apparent_power_reactive",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Total Apparent Power Reactive",
+            name=f"Emonio {mac_suffix} Total Apparent Power Reactive",
             unit_of_measurement=POWER_VOLT_AMPERE_REACTIVE,
             address=306,
             data_type="float32",
@@ -281,11 +313,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.REACTIVE_POWER,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_total_apparent_power_reactive",
+            unique_id=f"{mac_suffix}_emonio_total_apparent_power_reactive",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase A Apparent Power",
+            name=f"Emonio {mac_suffix} Phase A Apparent Power",
             unit_of_measurement=UnitOfApparentPower.VOLT_AMPERE,
             address=8,
             data_type="float32",
@@ -293,11 +325,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.APPARENT_POWER,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_a_apparent_power",
+            unique_id=f"{mac_suffix}_emonio_phase_a_apparent_power",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase B Apparent Power",
+            name=f"Emonio {mac_suffix} Phase B Apparent Power",
             unit_of_measurement=UnitOfApparentPower.VOLT_AMPERE,
             address=108,
             data_type="float32",
@@ -305,11 +337,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.APPARENT_POWER,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_b_apparent_power",
+            unique_id=f"{mac_suffix}_emonio_phase_b_apparent_power",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase C Apparent Power",
+            name=f"Emonio {mac_suffix} Phase C Apparent Power",
             unit_of_measurement=UnitOfApparentPower.VOLT_AMPERE,
             address=208,
             data_type="float32",
@@ -317,11 +349,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.APPARENT_POWER,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_c_apparent_power",
+            unique_id=f"{mac_suffix}_emonio_phase_c_apparent_power",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Total Apparent Power",
+            name=f"Emonio {mac_suffix} Total Apparent Power",
             unit_of_measurement=UnitOfApparentPower.VOLT_AMPERE,
             address=308,
             data_type="float32",
@@ -329,11 +361,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.APPARENT_POWER,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_total_apparent_power",
+            unique_id=f"{mac_suffix}_emonio_total_apparent_power",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase A Frequency",
+            name=f"Emonio {mac_suffix} Phase A Frequency",
             unit_of_measurement=UnitOfFrequency.HERTZ,
             address=10,
             data_type="float32",
@@ -341,11 +373,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.FREQUENCY,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_a_frequency",
+            unique_id=f"{mac_suffix}_emonio_phase_a_frequency",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase B Frequency",
+            name=f"Emonio {mac_suffix} Phase B Frequency",
             unit_of_measurement=UnitOfFrequency.HERTZ,
             address=110,
             data_type="float32",
@@ -353,11 +385,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.FREQUENCY,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_b_frequency",
+            unique_id=f"{mac_suffix}_emonio_phase_b_frequency",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase C Frequency",
+            name=f"Emonio {mac_suffix} Phase C Frequency",
             unit_of_measurement=UnitOfFrequency.HERTZ,
             address=210,
             data_type="float32",
@@ -365,11 +397,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.FREQUENCY,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_c_frequency",
+            unique_id=f"{mac_suffix}_emonio_phase_c_frequency",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Total Frequency",
+            name=f"Emonio {mac_suffix} Total Frequency",
             unit_of_measurement=UnitOfFrequency.HERTZ,
             address=310,
             data_type="float32",
@@ -377,11 +409,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.FREQUENCY,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_total_frequency",
+            unique_id=f"{mac_suffix}_emonio_total_frequency",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase A Power Factor",
+            name=f"Emonio {mac_suffix} Phase A Power Factor",
             unit_of_measurement="%",
             address=14,
             data_type="float32",
@@ -389,11 +421,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.POWER_FACTOR,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_a_power_factor",
+            unique_id=f"{mac_suffix}_emonio_phase_a_power_factor",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase B Power Factor",
+            name=f"Emonio {mac_suffix} Phase B Power Factor",
             unit_of_measurement="%",
             address=114,
             data_type="float32",
@@ -401,11 +433,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.POWER_FACTOR,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_b_power_factor",
+            unique_id=f"{mac_suffix}_emonio_phase_b_power_factor",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Phase C Power Factor",
+            name=f"Emonio {mac_suffix} Phase C Power Factor",
             unit_of_measurement="%",
             address=214,
             data_type="float32",
@@ -413,11 +445,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.POWER_FACTOR,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_phase_c_power_factor",
+            unique_id=f"{mac_suffix}_emonio_phase_c_power_factor",
             device_info=device_info,
         ),
         EmonioModbusSensor(
-            name=f"Emonio {host} Total Power Factor",
+            name=f"Emonio {mac_suffix} Total Power Factor",
             unit_of_measurement="%",
             address=314,
             data_type="float32",
@@ -425,10 +457,12 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
             device_class=SensorDeviceClass.POWER_FACTOR,
             state_class=SensorStateClass.MEASUREMENT,
             modbus_client=modbus_client,
-            unique_id=f"{host}_emonio_total_power_factor",
+            unique_id=f"{mac_suffix}_emonio_total_power_factor",
             device_info=device_info,
         ),
     ]
+
+    hass.data[DOMAIN][config_entry.entry_id]["entities"] = sensors  # Store entities
     async_add_entities(sensors, True)
 
 class EmonioModbusSensor(SensorEntity):
@@ -500,3 +534,8 @@ class EmonioModbusSensor(SensorEntity):
         finally:
             # Do not close the client to keep the connection persistent
             pass
+
+    def close_connection(self):
+        """Close the Modbus client connection."""
+        if self._modbus_client:
+            self._modbus_client.close()
